@@ -1,0 +1,873 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4429cc59..03c0ce20 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -159,8 +159,12 @@ set(GFX_DEBUG_DISASSEMBLER ON)
+ set(GBI_UCODE F3DEX_GBI_2)
+ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
+ 
+-# Enable MPQ and OTR support
+-set(INCLUDE_MPQ_SUPPORT ON)
++# Enable MPQ and OTR support (PS4 only ships .o2r archives, no StormLib there)
++if(CMAKE_SYSTEM_NAME STREQUAL "PS4")
++    set(INCLUDE_MPQ_SUPPORT OFF)
++else()
++    set(INCLUDE_MPQ_SUPPORT ON)
++endif()
+ 
+ ################################################################################
+ # Set CONTROLLERBUTTONS_T
+@@ -172,6 +176,11 @@ add_compile_definitions(CONTROLLERBUTTONS_T=uint32_t)
+ ################################################################################
+ add_subdirectory(libultraship ${CMAKE_BINARY_DIR}/libultraship)
+ target_compile_options(libultraship PRIVATE "${WARNING_OVERRIDE}")
++if(CMAKE_SYSTEM_NAME STREQUAL "PS4")
++    # Assets are extracted on a PC; the console build has no extractor and no packaging rules.
++    add_subdirectory(soh)
++    return()
++endif()
+ target_compile_definitions(libultraship PUBLIC INCLUDE_MPQ_SUPPORT)
+ add_subdirectory(ZAPDTR/ZAPD ${CMAKE_BINARY_DIR}/ZAPD)
+ add_subdirectory(OTRExporter)
+diff --git a/soh/CMakeLists.txt b/soh/CMakeLists.txt
+index 31955ebf..768f1597 100644
+--- a/soh/CMakeLists.txt
++++ b/soh/CMakeLists.txt
+@@ -93,7 +93,7 @@ if (NOT TARGET libultraship)
+     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libultraship ${CMAKE_BINARY_DIR}/libultraship)
+ endif()
+ 
+-if (NOT TARGET ZAPDLib)
++if (NOT TARGET ZAPDLib AND NOT CMAKE_SYSTEM_NAME STREQUAL "PS4")
+     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ZAPDTR/ZAPD ${CMAKE_BINARY_DIR}/ZAPD)
+ endif()
+ 
+@@ -163,8 +163,14 @@ endif()
+ 
+ # soh/Extractor {{{
+ list(FILTER ship__ EXCLUDE REGEX "soh/Extractor/*")
++if(CMAKE_SYSTEM_NAME STREQUAL "PS4")
++    # ROM extraction happens on a PC; ZAPD isn't part of the console build.
++    list(FILTER soh__ EXCLUDE REGEX "soh/Extractor/.*[.](c|cpp)$")
++else()
++    list(FILTER soh__ EXCLUDE REGEX "soh/port/ps4/")
++endif()
+ 
+-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
++if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|PS4")
+     file(GLOB_RECURSE soh__Extractor RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+         "soh/Extractor/*.c"
+         "soh/Extractor/*.cpp"
+@@ -536,6 +542,30 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+         target_link_options(${PROJECT_NAME} PRIVATE
+             -pthread
+         )
++    elseif (CMAKE_SYSTEM_NAME STREQUAL "PS4")
++        target_compile_options(${PROJECT_NAME} PRIVATE
++            -Wall -Wextra -Wno-error
++            -Wformat-security
++            -Wno-return-type
++            -Wno-unused-parameter
++            -Wno-unused-function
++            -Wno-unused-variable
++            -Wno-missing-field-initializers
++            -Wno-parentheses
++            -Wno-narrowing
++            -Wno-missing-braces
++            $<$<COMPILE_LANGUAGE:C>:
++                -Werror-implicit-function-declaration
++                -Wno-implicit-int
++                -Wno-incompatible-pointer-types
++                -Wno-int-conversion
++            >
++            $<$<COMPILE_LANGUAGE:CXX>:
++                -Wno-c++11-narrowing
++                -Wno-deprecated-enum-enum-conversion
++            >
++            -msse2 -mfpmath=sse
++        )
+     elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+         target_compile_options(${PROJECT_NAME} PRIVATE
+             -O2
+@@ -601,7 +631,7 @@ if (CMAKE_GENERATOR MATCHES "Visual Studio")
+     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${CMAKE_SOURCE_DIR}/soh/assets/xml ${CMAKE_BINARY_DIR}/soh/assets/xml
+     )
+ endif()
+-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
++if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|PS4")
+     add_custom_command(
+         TARGET ${PROJECT_NAME}
+         POST_BUILD
+@@ -618,7 +648,7 @@ endif()
+ add_dependencies(${PROJECT_NAME}
+     libultraship
+ )
+-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
++if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|PS4")
+ add_dependencies(${PROJECT_NAME}
+     ZAPDLib
+ )
+@@ -679,6 +709,22 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
+         -lglad
+         Threads::Threads
+     )
++elseif(CMAKE_SYSTEM_NAME STREQUAL "PS4")
++    find_package(SDL2 REQUIRED CONFIG)
++    find_package(Ogg REQUIRED)
++    find_package(Vorbis REQUIRED)
++    find_package(Opus REQUIRED)
++    find_package(OpusFile REQUIRED)
++    set(ADDITIONAL_LIBRARY_DEPENDENCIES
++        "libultraship;"
++        SDL2::SDL2-static
++        "Opusfile::Opusfile"
++        "Vorbis::vorbisfile"
++        "Vorbis::vorbisenc"
++        "Vorbis::vorbis"
++        "Opus::opus"
++        "Ogg::ogg"
++    )
+ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+     find_package(SDL2 REQUIRED)
+     set(ADDITIONAL_LIBRARY_DEPENDENCIES
+@@ -731,7 +777,7 @@ configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/macosx/Info.plist.in ${CMAKE_BINARY_
+ INSTALL(TARGETS soh DESTINATION ../MacOS COMPONENT ship)
+ INSTALL(FILES ${CMAKE_BINARY_DIR}/gamecontrollerdb.txt DESTINATION ../MacOS COMPONENT ship)
+ INSTALL(FILES ${CMAKE_BINARY_DIR}/soh/soh.o2r DESTINATION ../Resources COMPONENT ship)
+-elseif(NOT "${CMAKE_SYSTEM_NAME}" MATCHES "NintendoSwitch|CafeOS")
++elseif(NOT "${CMAKE_SYSTEM_NAME}" MATCHES "NintendoSwitch|CafeOS|PS4")
+ INSTALL(FILES ${CMAKE_BINARY_DIR}/gamecontrollerdb.txt DESTINATION . COMPONENT ship)
+ endif()
+ 
+diff --git a/soh/soh/Enhancements/FileSelectEnhancements.cpp b/soh/soh/Enhancements/FileSelectEnhancements.cpp
+index 08dd8150..41f61beb 100644
+--- a/soh/soh/Enhancements/FileSelectEnhancements.cpp
++++ b/soh/soh/Enhancements/FileSelectEnhancements.cpp
+@@ -42,21 +42,21 @@ std::array<std::string, LANGUAGE_MAX> RandomizerSettingsMenuText[RSM_MAX] = {
+     },
+     { // English
+       "No randomizer seed loaded.\nPlease generate one first"
+-#if defined(__WIIU__) || defined(__SWITCH__)
++#if defined(__WIIU__) || defined(__SWITCH__) || defined(__PS4__)
+       ".",
+ #else
+       ",\nor drop a spoiler log on the game window.",
+ #endif
+       // German
+       "Kein Randomizer Seed gefunden.\nBitte generiere zuerst einen"
+-#if defined(__WIIU__) || defined(__SWITCH__)
++#if defined(__WIIU__) || defined(__SWITCH__) || defined(__PS4__)
+       ".",
+ #else
+       ",\noder ziehe ein Spoiler Log\nauf das Spielfenster.",
+ #endif
+       // French
+       "Aucune Seed de Randomizer actuellement disponible.\nGénérez-en une dans les \"Randomizer Settings\""
+-#if (defined(__WIIU__) || defined(__SWITCH__))
++#if (defined(__WIIU__) || defined(__SWITCH__) || defined(__PS4__))
+       "."
+ #else
+       "\nou glissez un spoilerlog sur la fenêtre du jeu."
+diff --git a/soh/soh/Enhancements/bootcommands.c b/soh/soh/Enhancements/bootcommands.c
+index b9838cf6..c6b24aea 100644
+--- a/soh/soh/Enhancements/bootcommands.c
++++ b/soh/soh/Enhancements/bootcommands.c
+@@ -11,7 +11,7 @@ void BootCommands_Init() {
+     CVarClear(CVAR_GENERAL("OnFileSelectNameEntry")); // Clear when soh is killed on the file name entry page
+     CVarClear(CVAR_GENERAL("BetterDebugWarpScreenMQMode"));
+     CVarClear(CVAR_GENERAL("BetterDebugWarpScreenMQModeScene"));
+-#if defined(__SWITCH__) || defined(__WIIU__)
+-    CVarRegisterInteger(CVAR_IMGUI_CONTROLLER_NAV, 1); // always enable controller nav on switch/wii u
++#if defined(__SWITCH__) || defined(__WIIU__) || defined(__PS4__)
++    CVarRegisterInteger(CVAR_IMGUI_CONTROLLER_NAV, 1); // always enable controller nav on consoles
+ #endif
+ }
+diff --git a/soh/soh/Enhancements/randomizer/3drando/spoiler_log.cpp b/soh/soh/Enhancements/randomizer/3drando/spoiler_log.cpp
+index 5e1b84ec..30a1b90a 100644
+--- a/soh/soh/Enhancements/randomizer/3drando/spoiler_log.cpp
++++ b/soh/soh/Enhancements/randomizer/3drando/spoiler_log.cpp
+@@ -382,7 +382,15 @@ void SpoilerLog_Write() {
+     jsonFile << std::setw(4) << jsonString << std::endl;
+     jsonFile.close();
+ 
++#ifdef __PS4__
++    // No relative paths on PS4.
++    CVarSetString(CVAR_GENERAL("SpoilerLog"),
++                  Ship::Context::GetPathRelativeToAppDirectory(
++                      (std::string("Randomizer/") + fileName + std::string(".json")).c_str())
++                      .c_str());
++#else
+     CVarSetString(CVAR_GENERAL("SpoilerLog"), (std::string("./Randomizer/") + fileName + std::string(".json")).c_str());
++#endif
+ }
+ 
+ void PlacementLog_Msg(std::string_view msg) {
+diff --git a/soh/soh/OTRGlobals.cpp b/soh/soh/OTRGlobals.cpp
+index 39f04ddb..6141ebfd 100644
+--- a/soh/soh/OTRGlobals.cpp
++++ b/soh/soh/OTRGlobals.cpp
+@@ -56,6 +56,11 @@
+ #include <SDL2/SDL_scancode.h>
+ #endif
+ 
++#ifdef __PS4__
++#include <SDL2/SDL.h>
++#include <ship/port/ps4/Ps4Platform.h>
++#endif
++
+ #ifdef __SWITCH__
+ #include <port/switch/SwitchImpl.h>
+ #elif defined(__WIIU__)
+@@ -387,6 +392,84 @@ namespace SohGui {
+ extern std::shared_ptr<SohGui::SohMenu> mSohMenu;
+ }
+ 
++#ifdef __PS4__
++// Console build: there is no ROM extractor here. The archives are generated with the PC release
++// of the same version and copied to the data directory, so all that is left to do at boot is to
++// check that they are there and tell the player what to do when they aren't.
++void OTRGlobals::RunExtract(int argc, char* argv[]) {
++    auto wnd = std::dynamic_pointer_cast<Fast::Fast3dWindow>(OTRGlobals::Instance->context->GetWindow());
++    auto gui = wnd->GetGui();
++
++    OTRVersion vanillaVersion = DetectOTRVersion("oot.o2r", false);
++    OTRVersion mqVersion = DetectOTRVersion("oot-mq.o2r", true);
++    const bool outdatedRomArchive = VerifyArchiveVersion(vanillaVersion) || VerifyArchiveVersion(mqVersion);
++    const bool haveRomArchive =
++        std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName)) ||
++        std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("oot.o2r", appShortName));
++    const std::string dataPath = Ship::Context::GetAppDirectoryPath(appShortName);
++    const std::string buildVersion = fmt::format("{}.{}.{}", gBuildVersionMajor, gBuildVersionMinor, gBuildVersionPatch);
++
++    std::string title;
++    std::string message;
++    if (!sohArchiveVersionMatch) {
++        title = !std::filesystem::exists(portArchivePath) ? "Missing soh.o2r" : "soh.o2r is outdated";
++        message = "This build needs the soh.o2r of Ship of Harkinian " + buildVersion + ".\nCopy it to " + dataPath +
++                  "/ and start the game again.";
++    } else if (outdatedRomArchive) {
++        title = "Outdated ROM Archives";
++        message = "The oot.o2r / oot-mq.o2r in " + dataPath +
++                  "/ were created with an incompatible version of Ship of Harkinian.\nGenerate them again with the " +
++                  buildVersion + " PC release and copy them over.";
++    } else if (!haveRomArchive) {
++        title = "No ROM Archives";
++        message = "No oot.o2r or oot-mq.o2r found.\nGenerate one from your ROM with the Ship of Harkinian " +
++                  buildVersion + " PC release and copy it to " + dataPath + "/";
++    } else {
++        CheckAndCreateModFolder();
++        return;
++    }
++
++    SPDLOG_ERROR("{}: {}", title, message);
++    message += "\n\nPress OPTIONS to exit.";
++    SohGui::RegisterPopup(title, message, "OK", "", [&]() { exit(1); });
++
++    // The game hasn't set up its controllers yet, do it for this screen.
++    SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
++    Ship::Ps4::AttachPad();
++    SDL_GameController* controller = nullptr;
++    for (int i = 0; i < SDL_NumJoysticks() && controller == nullptr; i++) {
++        if (SDL_IsGameController(i)) {
++            controller = SDL_GameControllerOpen(i);
++        }
++    }
++
++    while (true) {
++        if (!WindowIsRunning()) {
++            exit(0);
++        }
++        // Process window events (also updates the controllers)
++        wnd->HandleEvents();
++        if (controller != nullptr && SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START)) {
++            exit(1);
++        }
++
++        if (!wnd->IsFrameReady()) {
++            continue;
++        }
++
++        UIWidgets::Colors themeColor =
++            static_cast<UIWidgets::Colors>(CVarGetInteger(CVAR_SETTING("Menu.Theme"), UIWidgets::Colors::LightBlue));
++        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, UIWidgets::ColorValues.at(themeColor));
++        ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, UIWidgets::ColorValues.at(UIWidgets::Colors::DarkGray));
++        gui->StartDraw();
++        sohFast3dWindow->StartFrame();
++        sohFast3dWindow->RunGuiOnly();
++        gui->EndDraw();
++        sohFast3dWindow->EndFrame();
++        ImGui::PopStyleColor(2);
++    }
++}
++#else
+ void OTRGlobals::RunExtract(int argc, char* argv[]) {
+     bool extractDone = false;
+     ExtractSteps extractStep = ES_PORT_ARCHIVE;
+@@ -762,6 +845,7 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
+     Ship::WiiU::Init(appShortName);
+ #endif
+ }
++#endif // __PS4__
+ 
+ void OTRGlobals::Initialize() {
+     std::string mqPath = Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName);
+@@ -1445,7 +1529,12 @@ OTRVersion DetectOTRVersion(std::string fileName, bool isMQ) {
+ }
+ 
+ extern "C" void Messagebox_ShowErrorBox(char* title, char* body) {
++#ifdef __PS4__
++    // No native message boxes without the extractor module, the log has to do.
++    SPDLOG_ERROR("{}: {}", title, body);
++#else
+     Extractor::ShowErrorBox(title, body);
++#endif
+ }
+ 
+ bool VerifyArchiveVersion(OTRVersion version) {
+diff --git a/soh/soh/SohGui/Menu.cpp b/soh/soh/SohGui/Menu.cpp
+index 0147d75a..ede33456 100644
+--- a/soh/soh/SohGui/Menu.cpp
++++ b/soh/soh/SohGui/Menu.cpp
+@@ -782,7 +782,7 @@ void Menu::DrawElement() {
+     options2.tooltip = "Reset"
+ #ifdef __APPLE__
+                        " (Command-R)"
+-#elif !defined(__SWITCH__) && !defined(__WIIU__)
++#elif !defined(__SWITCH__) && !defined(__WIIU__) && !defined(__PS4__)
+                        " (Ctrl+R)"
+ #else
+                        ""
+diff --git a/soh/soh/SohGui/ResolutionEditor.cpp b/soh/soh/SohGui/ResolutionEditor.cpp
+index db61e814..17789000 100644
+--- a/soh/soh/SohGui/ResolutionEditor.cpp
++++ b/soh/soh/SohGui/ResolutionEditor.cpp
+@@ -233,7 +233,7 @@ void ResolutionCustomWidget(WidgetInfo& info) {
+     // Collapsible panel for additional settings
+     UIWidgets::PushStyleHeader(THEME_COLOR);
+     if (ImGui::CollapsingHeader("Additional Settings")) {
+-#if defined(__SWITCH__) || defined(__WIIU__)
++#if defined(__SWITCH__) || defined(__WIIU__) || defined(__PS4__)
+         // Disable aspect correction, stretching the framebuffer to fill the viewport.
+         // This option is only really needed on systems limited to 16:9 TV resolutions, such as consoles.
+         // The associated cvar is still functional on PC platforms if you want to use it though.
+diff --git a/soh/soh/SohGui/SohGui.cpp b/soh/soh/SohGui/SohGui.cpp
+index 625c1311..a46b98bc 100644
+--- a/soh/soh/SohGui/SohGui.cpp
++++ b/soh/soh/SohGui/SohGui.cpp
+@@ -109,6 +109,11 @@ std::shared_ptr<SohMenu> GetSohMenu() {
+ 
+ void SetupMenu() {
+     auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
++#ifdef __PS4__
++    // The game is closed from the system menu, often with the port menu still open, and its
++    // open/closed state is saved: don't greet the player with it at the next start.
++    CVarSetInteger(CVAR_WINDOW("Menu"), 0);
++#endif
+     mSohMenu = std::make_shared<SohMenu>(CVAR_WINDOW("Menu"), "Port Menu");
+     gui->SetMenu(mSohMenu);
+ 
+diff --git a/soh/soh/SohGui/SohMenuRandomizer.cpp b/soh/soh/SohGui/SohMenuRandomizer.cpp
+index b5b9ece9..c15cf65f 100644
+--- a/soh/soh/SohGui/SohMenuRandomizer.cpp
++++ b/soh/soh/SohGui/SohMenuRandomizer.cpp
+@@ -1,3 +1,4 @@
++#include <sstream>
+ #include "SohMenu.h"
+ #include "soh/Enhancements/enhancementTypes.h"
+ #include "soh/Enhancements/randomizer/randomizer.h"
+diff --git a/soh/soh/SohGui/SohMenuSettings.cpp b/soh/soh/SohGui/SohMenuSettings.cpp
+index b806da56..346743b3 100644
+--- a/soh/soh/SohGui/SohMenuSettings.cpp
++++ b/soh/soh/SohGui/SohMenuSettings.cpp
+@@ -137,7 +137,7 @@ void SohMenu::AddMenuSettings() {
+                      .Tooltip("Changes the Theme of the Menu Widgets.")
+                      .ComboMap(menuThemeOptions)
+                      .DefaultIndex(Colors::LightBlue));
+-#if not defined(__SWITCH__) and not defined(__WIIU__)
++#if not defined(__SWITCH__) and not defined(__WIIU__) and not defined(__PS4__)
+     AddWidget(path, "Menu Controller Navigation", WIDGET_CVAR_CHECKBOX)
+         .CVar(CVAR_IMGUI_CONTROLLER_NAV)
+         .RaceDisable(false)
+diff --git a/soh/soh/port/ps4/Ps4Compat.c b/soh/soh/port/ps4/Ps4Compat.c
+new file mode 100644
+index 00000000..d82af8a5
+--- /dev/null
++++ b/soh/soh/port/ps4/Ps4Compat.c
+@@ -0,0 +1,66 @@
++// PS4: runtime bits the OpenOrbis C library doesn't provide.
++
++#ifdef __PS4__
++
++#include <pthread.h>
++#include <stdlib.h>
++
++// libc++abi forwards the registration of thread_local destructors to the C library.
++// This is the usual implementation on top of a pthread key: destructors run when the thread
++// exits, and from an atexit handler for the thread that calls exit().
++
++typedef void (*Ps4ThreadDtor)(void*);
++
++typedef struct Ps4ThreadDtorEntry {
++    Ps4ThreadDtor destructor;
++    void* object;
++    struct Ps4ThreadDtorEntry* next;
++} Ps4ThreadDtorEntry;
++
++static pthread_key_t sDtorKey;
++static pthread_once_t sDtorKeyOnce = PTHREAD_ONCE_INIT;
++
++static void Ps4RunThreadDtors(void* list) {
++    Ps4ThreadDtorEntry* entry = (Ps4ThreadDtorEntry*)list;
++    while (entry != NULL) {
++        Ps4ThreadDtorEntry* next = entry->next;
++        entry->destructor(entry->object);
++        free(entry);
++        entry = next;
++    }
++}
++
++static void Ps4RunExitingThreadDtors(void) {
++    // A destructor may register new ones, keep going until the list stays empty.
++    for (int i = 0; i < 8; i++) {
++        void* list = pthread_getspecific(sDtorKey);
++        if (list == NULL) {
++            break;
++        }
++        pthread_setspecific(sDtorKey, NULL);
++        Ps4RunThreadDtors(list);
++    }
++}
++
++static void Ps4CreateDtorKey(void) {
++    pthread_key_create(&sDtorKey, Ps4RunThreadDtors);
++    atexit(Ps4RunExitingThreadDtors);
++}
++
++int __cxa_thread_atexit_impl(Ps4ThreadDtor destructor, void* object, void* dsoHandle) {
++    (void)dsoHandle;
++
++    pthread_once(&sDtorKeyOnce, Ps4CreateDtorKey);
++
++    Ps4ThreadDtorEntry* entry = (Ps4ThreadDtorEntry*)malloc(sizeof(Ps4ThreadDtorEntry));
++    if (entry == NULL) {
++        return -1;
++    }
++    entry->destructor = destructor;
++    entry->object = object;
++    entry->next = (Ps4ThreadDtorEntry*)pthread_getspecific(sDtorKey);
++    pthread_setspecific(sDtorKey, entry);
++    return 0;
++}
++
++#endif // __PS4__
+diff --git a/soh/soh/port/ps4/Ps4Heap.c b/soh/soh/port/ps4/Ps4Heap.c
+new file mode 100644
+index 00000000..89e7c1c4
+--- /dev/null
++++ b/soh/soh/port/ps4/Ps4Heap.c
+@@ -0,0 +1,258 @@
++// PS4: give the C heap its own big block of memory.
++//
++// The C library (musl) gets all of its heap from anonymous mmap() calls. On PS4 those are served
++// from the application's "flexible memory", a pool of only ~255 MiB that Piglet also keeps its
++// textures in. mmap()/munmap() are therefore replaced here: anonymous read/write mappings are
++// carved out of one arena, everything else is forwarded to the kernel.
++//
++// The arena comes from, in order of preference:
++//  1. system flexible memory (a separate pool this kind of application may map, the same thing
++//     the Super Mario 64 port does), which leaves all of the direct memory to Piglet;
++//  2. direct memory, of which the application only has 768 MiB in total.
++
++#ifdef __PS4__
++
++#include <errno.h>
++#include <stddef.h>
++#include <stdint.h>
++#include <string.h>
++#include <sys/mman.h>
++#include <sys/types.h>
++
++#include <orbis/libkernel.h>
++
++#define PS4_PAGE_SIZE 0x4000ULL
++#define PS4_ARENA_ALIGN 0x200000ULL
++#define PS4_SYSTEM_ARENA_SIZE (1024ULL * 1024 * 1024)
++#define PS4_MAP_FIXED 0x10
++
++// Not (properly) declared by the OpenOrbis headers.
++int32_t Ps4Heap_MapNamedSystemFlexibleMemory(void** address, size_t length, int32_t protection, int32_t flags,
++                                             const char* name) __asm__("sceKernelMapNamedSystemFlexibleMemory");
++// Leaves the rest of the direct memory to Piglet (video memory) and the system libraries.
++#define PS4_ARENA_MAX_SIZE (1024ULL * 1024 * 1024)
++#define PS4_ARENA_MIN_SIZE (256ULL * 1024 * 1024)
++// Allocations of at least this many pages (1 MiB) are placed top-down.
++#define PS4_LARGE_PAGES 64
++
++static uint8_t* sArenaBase = NULL;
++static size_t sArenaPages = 0;
++// One byte per page: 0 = free, 1 = in use. Lives in the first pages of the arena itself.
++static uint8_t* sPageMap = NULL;
++static size_t sSearchHint = 0;
++static size_t sPagesInUse = 0;
++static size_t sPagesInUsePeak = 0;
++static int sInitDone = 0;
++// 0 = none, 1 = system flexible memory, 2 = direct memory
++static int sArenaKind = 0;
++static volatile int sLock = 0;
++
++static void Ps4Heap_Lock(void) {
++    while (__sync_lock_test_and_set(&sLock, 1)) {
++        while (sLock) {
++            __builtin_ia32_pause();
++        }
++    }
++}
++
++static void Ps4Heap_Unlock(void) {
++    __sync_lock_release(&sLock);
++}
++
++static void Ps4Heap_Init(void) {
++    sInitDone = 1;
++
++    const size_t directMemorySize = sceKernelGetDirectMemorySize();
++    size_t size = PS4_SYSTEM_ARENA_SIZE;
++
++    {
++        void* address = NULL;
++        if (sceKernelReserveVirtualRange(&address, size, 0, PS4_PAGE_SIZE) == 0 && address != NULL) {
++            if (Ps4Heap_MapNamedSystemFlexibleMemory(&address, size, ORBIS_KERNEL_PROT_CPU_RW, PS4_MAP_FIXED,
++                                                     "SoH heap") == 0) {
++                sArenaBase = (uint8_t*)address;
++                sArenaKind = 1;
++            } else {
++                sceKernelMunmap(address, size);
++            }
++        }
++    }
++
++    if (sArenaBase == NULL) {
++        size = PS4_ARENA_MAX_SIZE;
++    }
++
++    while (sArenaBase == NULL && size >= PS4_ARENA_MIN_SIZE) {
++        off_t physicalAddress = 0;
++        // Prefer the top of the physical range: Piglet and the system libraries allocate from the
++        // bottom and some of them are picky about where their memory sits.
++        int32_t allocated = -1;
++        if (directMemorySize > size) {
++            allocated = sceKernelAllocateDirectMemory((off_t)(directMemorySize - size), (off_t)directMemorySize, size,
++                                                      PS4_ARENA_ALIGN, ORBIS_KERNEL_WB_ONION, &physicalAddress);
++        }
++        if (allocated != 0) {
++            allocated = sceKernelAllocateDirectMemory(0, (off_t)directMemorySize, size, PS4_ARENA_ALIGN,
++                                                      ORBIS_KERNEL_WB_ONION, &physicalAddress);
++        }
++        if (allocated == 0) {
++            void* address = NULL;
++            if (sceKernelMapDirectMemory(&address, size, ORBIS_KERNEL_PROT_CPU_RW, 0, physicalAddress,
++                                         PS4_ARENA_ALIGN) == 0) {
++                sArenaBase = (uint8_t*)address;
++                sArenaKind = 2;
++                break;
++            }
++            sceKernelReleaseDirectMemory(physicalAddress, size);
++        }
++        size /= 2;
++    }
++
++    if (sArenaBase == NULL) {
++        return;
++    }
++
++    sArenaPages = size / PS4_PAGE_SIZE;
++    const size_t mapPages = (sArenaPages + PS4_PAGE_SIZE - 1) / PS4_PAGE_SIZE;
++    sPageMap = sArenaBase;
++    memset(sPageMap, 0, mapPages * PS4_PAGE_SIZE);
++    memset(sPageMap, 1, mapPages);
++    sSearchHint = mapPages;
++    sPagesInUse = mapPages;
++    sPagesInUsePeak = mapPages;
++}
++
++static void* Ps4Heap_Alloc(size_t length) {
++    const size_t pages = (length + PS4_PAGE_SIZE - 1) / PS4_PAGE_SIZE;
++    void* result = NULL;
++
++    Ps4Heap_Lock();
++
++    if (!sInitDone) {
++        Ps4Heap_Init();
++    }
++
++    if (sArenaBase != NULL && pages != 0 && pages <= sArenaPages) {
++        size_t first = (size_t)-1;
++
++        if (pages >= PS4_LARGE_PAGES) {
++            // Large blocks (textures, archives, the heap extensions themselves) are taken from the
++            // top of the arena so they don't get interleaved with the small short-lived ones.
++            size_t run = 0;
++            for (size_t i = sArenaPages; i-- > 0;) {
++                if (sPageMap[i] != 0) {
++                    run = 0;
++                    continue;
++                }
++                if (++run == pages) {
++                    first = i;
++                    break;
++                }
++            }
++        } else {
++            // Next fit from the bottom: start where the last search ended, wrap around once.
++            for (int pass = 0; pass < 2 && first == (size_t)-1; pass++) {
++                const size_t start = (pass == 0) ? sSearchHint : 0;
++                const size_t end = (pass == 0) ? sArenaPages : sSearchHint + pages;
++                size_t run = 0;
++
++                for (size_t i = start; i < end && i < sArenaPages; i++) {
++                    if (sPageMap[i] != 0) {
++                        run = 0;
++                        continue;
++                    }
++                    if (++run == pages) {
++                        first = i + 1 - pages;
++                        sSearchHint = i + 1;
++                        break;
++                    }
++                }
++            }
++        }
++
++        if (first != (size_t)-1) {
++            memset(sPageMap + first, 1, pages);
++            sPagesInUse += pages;
++            if (sPagesInUse > sPagesInUsePeak) {
++                sPagesInUsePeak = sPagesInUse;
++            }
++            result = sArenaBase + first * PS4_PAGE_SIZE;
++        }
++    }
++
++    Ps4Heap_Unlock();
++
++    if (result != NULL) {
++        // Anonymous mappings are guaranteed to read back as zero (calloc relies on it).
++        memset(result, 0, pages * PS4_PAGE_SIZE);
++    }
++
++    return result;
++}
++
++static int Ps4Heap_Contains(const void* address) {
++    return sArenaBase != NULL && (const uint8_t*)address >= sArenaBase &&
++           (const uint8_t*)address < sArenaBase + sArenaPages * PS4_PAGE_SIZE;
++}
++
++static void Ps4Heap_Free(void* address, size_t length) {
++    const size_t first = (size_t)((uint8_t*)address - sArenaBase) / PS4_PAGE_SIZE;
++    size_t pages = (length + PS4_PAGE_SIZE - 1) / PS4_PAGE_SIZE;
++
++    Ps4Heap_Lock();
++    if (first + pages > sArenaPages) {
++        pages = sArenaPages - first;
++    }
++    for (size_t i = first; i < first + pages; i++) {
++        if (sPageMap[i] != 0) {
++            sPageMap[i] = 0;
++            sPagesInUse--;
++        }
++    }
++    Ps4Heap_Unlock();
++}
++
++void* mmap(void* address, size_t length, int protection, int flags, int fd, off_t offset) {
++    if (address == NULL && fd == -1 && (flags & MAP_ANON) != 0 && (flags & MAP_FIXED) == 0 &&
++        protection == (PROT_READ | PROT_WRITE)) {
++        void* result = Ps4Heap_Alloc(length);
++        if (result != NULL) {
++            return result;
++        }
++    }
++
++    void* mapped = NULL;
++    const int32_t result = sceKernelMmap(address, length, protection, flags, fd, offset, &mapped);
++    if (result < 0) {
++        errno = ENOMEM;
++        return MAP_FAILED;
++    }
++    return mapped;
++}
++
++int munmap(void* address, size_t length) {
++    if (Ps4Heap_Contains(address)) {
++        Ps4Heap_Free(address, length);
++        return 0;
++    }
++
++    if (sceKernelMunmap(address, length) < 0) {
++        errno = EINVAL;
++        return -1;
++    }
++    return 0;
++}
++
++// 0 = no arena (plain mmap), 1 = system flexible memory, 2 = direct memory
++int Ps4Heap_GetKind(void) {
++    return sArenaKind;
++}
++
++// For the log: how much of the arena is (and was at most) in use, in bytes.
++void Ps4Heap_GetStats(size_t* arenaSize, size_t* inUse, size_t* peak) {
++    *arenaSize = sArenaPages * PS4_PAGE_SIZE;
++    *inUse = sPagesInUse * PS4_PAGE_SIZE;
++    *peak = sPagesInUsePeak * PS4_PAGE_SIZE;
++}
++
++#endif // __PS4__
+diff --git a/soh/soh/port/ps4/Ps4Main.cpp b/soh/soh/port/ps4/Ps4Main.cpp
+new file mode 100644
+index 00000000..43e94a42
+--- /dev/null
++++ b/soh/soh/port/ps4/Ps4Main.cpp
+@@ -0,0 +1,127 @@
++// PS4 process entry point.
++
++#ifdef __PS4__
++
++#include <errno.h>
++#include <fcntl.h>
++#include <pthread.h>
++#include <signal.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/stat.h>
++#include <unistd.h>
++
++#include <orbis/SystemService.h>
++#include <orbis/libkernel.h>
++
++#include <spdlog/spdlog.h>
++
++extern "C" int soh_main(int argc, char* argv[]);
++extern "C" void Ps4Heap_GetStats(size_t* arenaSize, size_t* inUse, size_t* peak);
++
++namespace {
++// Everything the game reads and writes (ROM archives, saves, config, mods, logs) lives here.
++constexpr const char* kDataDirectory = "/data/soh";
++// The decompiled game code, the randomizer and std::regex recurse deeper than the default
++// main thread stack is comfortable with.
++constexpr size_t kGameThreadStackSize = 16 * 1024 * 1024;
++
++// The game only opens its log file after the window exists. Until then (and for anything that
++// goes wrong inside the graphics setup) stdout/stderr are the only trace, so they are sent here.
++constexpr const char* kBootLog = "/data/soh/ps4_boot.log";
++int sBootLogFd = -1;
++
++void BootLogRaw(const char* text) {
++    if (sBootLogFd >= 0) {
++        write(sBootLogFd, text, strlen(text));
++        fsync(sBootLogFd);
++    }
++}
++
++void FatalSignalHandler(int signalNumber, siginfo_t* info, void*) {
++    char line[160];
++    snprintf(line, sizeof(line), "[PS4] FATAL: signal %d, fault address %p\n", signalNumber,
++             info != nullptr ? info->si_addr : nullptr);
++    BootLogRaw(line);
++    signal(signalNumber, SIG_DFL);
++    raise(signalNumber);
++}
++
++void InstallBootLog() {
++    sBootLogFd = open(kBootLog, O_WRONLY | O_CREAT | O_TRUNC, 0666);
++    if (sBootLogFd >= 0) {
++        // Same descriptor for both streams, so the order of the lines is preserved.
++        dup2(sBootLogFd, STDOUT_FILENO);
++        dup2(sBootLogFd, STDERR_FILENO);
++    }
++    setvbuf(stdout, nullptr, _IONBF, 0);
++    setvbuf(stderr, nullptr, _IONBF, 0);
++
++    spdlog::set_level(spdlog::level::info);
++    spdlog::flush_on(spdlog::level::trace);
++
++    struct sigaction action;
++    memset(&action, 0, sizeof(action));
++    // The OpenOrbis header misspells its own sa_sigaction macro, go through the union.
++    action.__sa_handler.__sa_sigaction = FatalSignalHandler;
++    action.sa_flags = SA_SIGINFO;
++    for (int signalNumber : { SIGSEGV, SIGBUS, SIGILL, SIGFPE, SIGABRT }) {
++        sigaction(signalNumber, &action, nullptr);
++    }
++}
++
++void* GameThread(void*) {
++    BootLogRaw("[PS4] game thread started\n");
++    static char arg0[] = "soh";
++    char* argv[] = { arg0, nullptr };
++    soh_main(1, argv);
++    BootLogRaw("[PS4] soh_main returned\n");
++    return nullptr;
++}
++
++void ReturnToSystem() {
++    size_t arenaSize = 0;
++    size_t inUse = 0;
++    size_t peak = 0;
++    Ps4Heap_GetStats(&arenaSize, &inUse, &peak);
++    printf("[PS4] heap arena %zu MiB, in use %zu MiB, peak %zu MiB\n", arenaSize >> 20, inUse >> 20, peak >> 20);
++    fflush(stdout);
++
++    // The orderly way for an application to quit back to the home screen.
++    sceSystemServiceLoadExec("exit", nullptr);
++}
++} // namespace
++
++int main(int argc, char* argv[]) {
++    if (mkdir(kDataDirectory, 0777) != 0 && errno != EEXIST) {
++        printf("[PS4] could not create %s: %s\n", kDataDirectory, strerror(errno));
++    }
++    if (chdir(kDataDirectory) != 0) {
++        printf("[PS4] could not change directory to %s: %s\n", kDataDirectory, strerror(errno));
++    }
++
++    InstallBootLog();
++    BootLogRaw("[PS4] Ship of Harkinian boot\n");
++
++    atexit(ReturnToSystem);
++
++    pthread_attr_t attributes;
++    pthread_attr_init(&attributes);
++    pthread_attr_setstacksize(&attributes, kGameThreadStackSize);
++
++    pthread_t thread;
++    const int result = pthread_create(&thread, &attributes, GameThread, nullptr);
++    pthread_attr_destroy(&attributes);
++
++    if (result != 0) {
++        printf("[PS4] could not create the game thread (%d), running on the main thread\n", result);
++        GameThread(nullptr);
++    } else {
++        pthread_join(thread, nullptr);
++    }
++
++    return 0;
++}
++
++#endif // __PS4__
+diff --git a/soh/src/code/main.c b/soh/src/code/main.c
+index c9d87c66..77c263c7 100644
+--- a/soh/src/code/main.c
++++ b/soh/src/code/main.c
+@@ -56,6 +56,9 @@ int SDL_main(int argc, char* argv[]) {
+     // Allow non-ascii characters for Windows
+     setlocale(LC_ALL, ".UTF8");
+ 
++#elif defined(__PS4__)
++// The process entry point is in soh/port/ps4/Ps4Main.cpp, it runs this on a thread with a big stack.
++int soh_main(int argc, char* argv[]) {
+ #else //_WIN32
+ int main(int argc, char* argv[]) {
+ #endif

@@ -1,0 +1,16 @@
+/build/
+/deps/
+/prefix/
+/pkg/
+/out/
+/release-pc/
+/tmp/
+*.pkg
+*.o2r
+*.otr
+*.sprx
+*.exe
+*.o
+*.log
+tests/shadertest/out/
+tests/shadertest/harness.cpp
