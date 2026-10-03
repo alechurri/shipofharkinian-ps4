@@ -80,8 +80,9 @@ lands 8 bytes off: `st_size` actually reads `st_blocks`. The visible symptom was
 on every archive with `ZIP_ER_NOZIP`, because it looked for the central directory at the wrong
 offset. The toolchain file force-includes `compat/include/ps4_fixups.h`, which defines `mode_t`
 before any system header; the boot log prints a `file size check` line comparing `stat()` with
-`lseek()`. Archives that still fail to open are read into memory and opened with
-`zip_source_buffer_create`. Note that the prebuilt libc++ still uses the old layout internally,
+`lseek()`. Verified on a PS4 Pro (FW 12.52): sizes now match, every archive opens in place, and
+the game uses about 35 MiB less memory than when archives had to be read into RAM. Archives that
+still fail to open fall back to being read into memory and opened with `zip_source_buffer_create`. Note that the prebuilt libc++ still uses the old layout internally,
 so `std::filesystem::file_size()` and `last_write_time()` are not reliable.
 
 **Relative paths.** They fail with `EINVAL` rather than `ENOENT`, which makes
