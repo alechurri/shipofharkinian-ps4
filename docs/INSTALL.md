@@ -41,12 +41,24 @@ They are Sony binaries and are **not** distributed here. They are the same two f
 the Super Mario 64 PS4 port, whose release archive carries them under
 `data/self/system/common/lib/`. If you already run that port, you already have them in place.
 
+Check them before copying, a damaged copy is the most common cause of the game not starting:
+
+| File | Size (bytes) | SHA-256 |
+| --- | --- | --- |
+| `libScePigletv2VSH.sprx` | 744,208 | `69d6b3adc85b6edf5208b7f18fad3b2638ae7c4648f78880877bae3aa4202efd` |
+| `libSceShaccVSH.sprx` | 10,394,272 | `0a64982b0d7e33701745ab5180a1d314c11980215e418d14e868c75de3ca1e12` |
+
 ## Step 3: copy the files over FTP
 
 1. On the PS4, with GoldHEN loaded: *Settings → GoldHEN → Server Settings → Enable FTP Server*.
    Note the console's IP address.
 2. In FileZilla connect to that IP, port **2121**, with empty user name and password.
-3. Set *Transfer → Transfer type → Binary*. In automatic mode the `.sprx` files can get corrupted.
+3. Set *Transfer → Transfer type → Binary*. In automatic or text mode the `.sprx` files get
+   corrupted.
+
+   > **Do not use WinSCP for the `.sprx` files.** A user on firmware 9.60 had the game fail every
+   > time until the modules were deleted and uploaded again with FileZilla in binary mode. The same
+   > applies to other ports that use these files, such as the Super Mario 64 one.
 4. Upload:
    - `oot.o2r` → `/data/soh/` (create the `soh` folder inside `/data` if it does not exist)
    - both `.sprx` files → `/data/self/system/common/lib/` (create the folders if needed)
@@ -96,8 +108,15 @@ Optional marker file:
 ## Troubleshooting
 
 **The game drops back to the home screen immediately (CE-34878-0).**
-Check that both `.sprx` files are in `/data/self/system/common/lib/` and were transferred in
-binary mode. Then look at `/data/soh/ps4_boot.log`: the last lines say how far it got.
+Almost always the Piglet modules. Open `/data/soh/ps4_boot.log` and look for
+`sceKernelLoadStartModule(".../libScePigletv2VSH.sprx") failed`:
+
+- `0x80020002`: the file is not there. Check the folder name, `/data/self/system/common/lib/`.
+- `0x8002000D`: the file is there but damaged, usually by an FTP client in text mode or by
+  WinSCP. Delete both `.sprx` files on the console, check their size and SHA-256 on the PC (table
+  in step 2), and upload them again with FileZilla in binary mode.
+
+If the modules load, the last lines of the log say how far the game got.
 
 **A popup says "No ROM Archives".**
 `oot.o2r` is missing from `/data/soh/`.
