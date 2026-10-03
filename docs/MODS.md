@@ -14,7 +14,7 @@ Subfolders are fine, the folder is scanned recursively.
 | --- | --- | --- |
 | `.o2r` | yes | |
 | `.otr` | yes, since v0.2.0 | The old MPQ format. Upload it as is, no conversion needed. |
-| `.zip` | no | Ignored on every platform. A downloaded `.zip` is only the wrapper: unzip it on a PC and upload the `.o2r` inside. |
+| `.zip` | no | Ignored on every platform. A downloaded `.zip` is only the wrapper: unzip it on a PC and upload the `.o2r` or `.otr` inside. |
 
 ## Limits
 
