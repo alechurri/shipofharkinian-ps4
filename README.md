@@ -18,16 +18,18 @@ Where everything lives:
 **None of this contains game assets or Sony binaries.** You need your own legally obtained ROM,
 and the two Piglet modules described in the install guide.
 
-> **Tested on exactly one console:** PS4 Pro, firmware 12.52, GoldHEN. Nobody knows yet how it
-> behaves on a base PS4 or on other firmwares. Reports are welcome.
+> **Tested on:** PS4 Pro, firmware 12.52, GoldHEN (the author's console), and a PS4 Pro on
+> firmware 9.60 with GoldHEN v2.4b18.12 (reported by a user). Nothing is known yet about the base
+> PS4 or other firmwares. Reports are welcome.
 
 ## What works
 
 - Graphics, audio, DualShock 4, saves
 - 60 fps with frame interpolation, internal resolution up to about 150%
 - The full SoH menu: graphics options, enhancements, mod manager
+- Master Quest (with an `oot-mq.o2r` next to `oot.o2r`)
 
-Not tested yet: Randomizer, Boss Rush, and loading actual mods (only `.o2r` is supported, see
+Not tested yet: Randomizer, Boss Rush, and loading actual mods (`.o2r` and `.otr`, see
 [docs/MODS.md](docs/MODS.md)).
 
 ## Known limitations
@@ -37,7 +39,6 @@ Not tested yet: Randomizer, Boss Rush, and loading actual mods (only `.o2r` is s
 - Offscreen framebuffers use 16-bit depth.
 - The first run compiles shaders on demand (hitches of about 0.2 s). From the second run on they
   are precompiled at boot, which makes startup 10 to 15 seconds longer.
-- `.otr` (MPQ) mods are not supported, only `.o2r`.
 - No ROM extractor on the console; assets are generated on a PC.
 
 ## Installing

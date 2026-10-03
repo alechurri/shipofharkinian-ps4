@@ -68,7 +68,9 @@ set(CMAKE_ASM_COMPILER_TARGET ${_PS4_TARGET})
 #  - libc++ headers have to come before the C headers (they wrap them with #include_next).
 #  - our own builds (SDL2 2.30...) must win over the old copies bundled with OpenOrbis.
 set(_PS4_COMMON "-fPIC -funwind-tables -D__PS4__ -D__ORBIS__ -D_BSD_SOURCE -D_GNU_SOURCE -isysroot \"${OO_PS4_TOOLCHAIN}\"")
-set(_PS4_COMPAT "-isystem \"${_PS4_ROOT}/ps4port/compat/include\"")
+# ps4_fixups.h corrects the struct stat layout of the OpenOrbis headers; it has to be seen
+# before any system header, hence the forced include.
+set(_PS4_COMPAT "-isystem \"${_PS4_ROOT}/ps4port/compat/include\" -include \"${_PS4_ROOT}/ps4port/compat/include/ps4_fixups.h\"")
 set(_PS4_PREFIX_INC "-isystem \"${PS4_PREFIX}/include\"")
 set(PS4_C_MANDATORY_FLAGS "${_PS4_COMMON} ${_PS4_PREFIX_INC} -isystem \"${OO_PS4_TOOLCHAIN}/include\" ${_PS4_COMPAT}")
 set(PS4_CXX_MANDATORY_FLAGS "${_PS4_COMMON} -nostdinc++ -isystem \"${OO_PS4_TOOLCHAIN}/include/c++/v1\" ${_PS4_PREFIX_INC} -isystem \"${OO_PS4_TOOLCHAIN}/include\" ${_PS4_COMPAT} -fexceptions -fcxx-exceptions")

@@ -14,7 +14,7 @@ PS4 platform layer:
 | Controller | `scePad`, exposed to SDL as a *virtual* game controller, so LUS's controller code is untouched |
 | Audio | `sceAudioOut`; the game mixes at 32 kHz, a feeder thread resamples to the 48 kHz the main port requires |
 | Memory | `mmap`/`munmap` are replaced so the C heap lives in one arena outside the application's flexible memory |
-| Assets | `.o2r` archives generated on a PC; no extractor (ZAPD) and no StormLib in the console build |
+| Assets | `.o2r` archives generated on a PC (no extractor/ZAPD on the console); `.otr` mods through StormLib |
 
 PS4-specific sources (in the [Shipwright](https://github.com/alechurri/Shipwright/tree/ps4) and
 [libultraship](https://github.com/alechurri/libultraship/tree/ps4) forks):
@@ -73,8 +73,16 @@ start, behind the system splash screen.
 The pause screen captures the picture that way when the game renders straight to the window, so
 on PS4 the game always renders into its own framebuffer (as LUS already does on macOS).
 
-**libzip.** `zip_open` on a path fails with `ZIP_ER_NOZIP` for every archive, wherever it is
-stored. Archives are read into memory and opened with `zip_source_buffer_create`.
+**`struct stat` has the wrong layout in the OpenOrbis headers.** `<bits/alltypes.h>` (v0.5.4)
+declares `mode_t` as a 32-bit type, while the PS4 kernel (FreeBSD 9) uses 16 bits, and the C
+library hands the kernel's `struct stat` to the caller unconverted. Every member after `st_mode`
+lands 8 bytes off: `st_size` actually reads `st_blocks`. The visible symptom was libzip failing
+on every archive with `ZIP_ER_NOZIP`, because it looked for the central directory at the wrong
+offset. The toolchain file force-includes `compat/include/ps4_fixups.h`, which defines `mode_t`
+before any system header; the boot log prints a `file size check` line comparing `stat()` with
+`lseek()`. Archives that still fail to open are read into memory and opened with
+`zip_source_buffer_create`. Note that the prebuilt libc++ still uses the old layout internally,
+so `std::filesystem::file_size()` and `last_write_time()` are not reliable.
 
 **Relative paths.** They fail with `EINVAL` rather than `ENOENT`, which makes
 `std::filesystem::exists` throw. Every lookup goes through an absolute path in `/data/soh`.
@@ -95,6 +103,5 @@ useful debugging tool of the whole port.
 - Offscreen depth is 16 bits. A depth *texture* attachment (`GL_OES_depth_texture`) has not been
   tried.
 - No occlusion for light glows and lens flares.
-- `.otr` mods need StormLib, which is not built for PS4 yet.
 - Gyro: SDL's virtual joystick has no sensor support; it would need a small LUS-side mapping.
-- Only one console model and firmware have been tested.
+- Only the PS4 Pro has been tested (firmware 12.52 and 9.60).

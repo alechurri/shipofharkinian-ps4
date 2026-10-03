@@ -1,28 +1,14 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 4429cc59..03c0ce20 100644
+index 4429cc59..bbef05db 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -159,8 +159,12 @@ set(GFX_DEBUG_DISASSEMBLER ON)
- set(GBI_UCODE F3DEX_GBI_2)
- list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
- 
--# Enable MPQ and OTR support
--set(INCLUDE_MPQ_SUPPORT ON)
-+# Enable MPQ and OTR support (PS4 only ships .o2r archives, no StormLib there)
-+if(CMAKE_SYSTEM_NAME STREQUAL "PS4")
-+    set(INCLUDE_MPQ_SUPPORT OFF)
-+else()
-+    set(INCLUDE_MPQ_SUPPORT ON)
-+endif()
- 
- ################################################################################
- # Set CONTROLLERBUTTONS_T
-@@ -172,6 +176,11 @@ add_compile_definitions(CONTROLLERBUTTONS_T=uint32_t)
+@@ -172,6 +172,12 @@ add_compile_definitions(CONTROLLERBUTTONS_T=uint32_t)
  ################################################################################
  add_subdirectory(libultraship ${CMAKE_BINARY_DIR}/libultraship)
  target_compile_options(libultraship PRIVATE "${WARNING_OVERRIDE}")
 +if(CMAKE_SYSTEM_NAME STREQUAL "PS4")
 +    # Assets are extracted on a PC; the console build has no extractor and no packaging rules.
++    target_compile_definitions(libultraship PUBLIC INCLUDE_MPQ_SUPPORT)
 +    add_subdirectory(soh)
 +    return()
 +endif()
@@ -726,10 +712,10 @@ index 00000000..89e7c1c4
 +#endif // __PS4__
 diff --git a/soh/soh/port/ps4/Ps4Main.cpp b/soh/soh/port/ps4/Ps4Main.cpp
 new file mode 100644
-index 00000000..43e94a42
+index 00000000..4401d575
 --- /dev/null
 +++ b/soh/soh/port/ps4/Ps4Main.cpp
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,149 @@
 +// PS4 process entry point.
 +
 +#ifdef __PS4__
@@ -803,6 +789,27 @@ index 00000000..43e94a42
 +    }
 +}
 +
++// stat() used to report garbage sizes with the stock OpenOrbis headers (see ps4_fixups.h in the
++// build scripts). Compare it against lseek() on a file that is always there, so the log says
++// whether file sizes can be trusted on this console.
++void CheckFileSizes() {
++    const char* path = "/app0/soh.o2r";
++    struct stat info;
++    memset(&info, 0, sizeof(info));
++    const int statResult = stat(path, &info);
++    long long seekSize = -1;
++    const int fd = open(path, O_RDONLY);
++    if (fd >= 0) {
++        seekSize = (long long)lseek(fd, 0, SEEK_END);
++        close(fd);
++    }
++    char line[200];
++    snprintf(line, sizeof(line), "[PS4] file size check on %s: stat %s, st_size %lld, lseek %lld -> %s\n", path,
++             statResult == 0 ? "ok" : "failed", (long long)info.st_size, seekSize,
++             (statResult == 0 && (long long)info.st_size == seekSize) ? "consistent" : "MISMATCH");
++    BootLogRaw(line);
++}
++
 +void* GameThread(void*) {
 +    BootLogRaw("[PS4] game thread started\n");
 +    static char arg0[] = "soh";
@@ -835,6 +842,7 @@ index 00000000..43e94a42
 +
 +    InstallBootLog();
 +    BootLogRaw("[PS4] Ship of Harkinian boot\n");
++    CheckFileSizes();
 +
 +    atexit(ReturnToSystem);
 +

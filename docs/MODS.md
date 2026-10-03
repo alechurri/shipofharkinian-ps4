@@ -5,25 +5,28 @@ them over FTP, then enable them from the SoH menu (touchpad click) in the mods s
 Subfolders are fine, the folder is scanned recursively.
 
 > No mod has been verified on the PS4 port yet. Test a mod on the PC release of Ship of Harkinian
-> 9.2.3 first; if it is broken there it will be broken on the console too.
+> 9.2.3 first; if it is broken there it will be broken on the console too. If you try one, please
+> report the result (and attach `/data/soh/ps4_boot.log` if it fails).
 
 ## Supported formats
 
 | Format | PS4 port | Notes |
 | --- | --- | --- |
 | `.o2r` | yes | |
-| `.otr` | **no** | The old MPQ format. StormLib is not part of the PS4 build. Convert it, see below. |
+| `.otr` | yes, since v0.2.0 | The old MPQ format. Upload it as is, no conversion needed. |
 | `.zip` | no | Ignored on every platform. A downloaded `.zip` is only the wrapper: unzip it on a PC and upload the `.o2r` inside. |
 
 ## Limits
 
-Every archive is loaded fully into memory on the console, and video memory is limited. Model,
-sound and small texture mods should fit. Multi-gigabyte HD texture packs almost certainly will
-not.
+Video memory is limited on the console, and archives that can't be read in place are loaded
+fully into RAM. Model, sound and small texture mods should fit. Multi-gigabyte HD texture packs
+almost certainly will not.
 
 ## Converting an `.otr` mod to `.o2r`
 
-An `.otr` is an MPQ archive. An `.o2r` holds the same files in a ZIP container.
+Not needed since v0.2.0, `.otr` files load directly. It is still a way out if a particular `.otr`
+refuses to load: an `.otr` is an MPQ archive and an `.o2r` holds the same files in a ZIP
+container.
 
 1. On a PC, open the `.otr` with an MPQ editor (for example Ladislav Zezula's
    [MPQ Editor](http://www.zezula.net/en/mpq/download.html)), select everything and extract it to

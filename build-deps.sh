@@ -29,6 +29,10 @@ build() { # name srcdir [cmake args...]
 fetch zlib https://github.com/madler/zlib.git v1.3.1
 build zlib "$HERE/zlib-cmake" -DZLIB_SRC="$(W "$SRC/zlib")"
 
+# StormLib (MPQ / .otr archives) wants bzip2 next to zlib
+fetch bzip2 https://gitlab.com/bzip2/bzip2.git bzip2-1.0.8
+build bzip2 "$HERE/bzip2-cmake" -DBZIP2_SRC="$(W "$SRC/bzip2")"
+
 fetch libzip https://github.com/nih-at/libzip.git v1.10.1
 build libzip "$SRC/libzip" -DENABLE_COMMONCRYPTO=OFF -DENABLE_GNUTLS=OFF -DENABLE_MBEDTLS=OFF -DENABLE_OPENSSL=OFF \
     -DENABLE_WINDOWS_CRYPTO=OFF -DENABLE_BZIP2=OFF -DENABLE_LZMA=OFF -DENABLE_ZSTD=OFF -DBUILD_TOOLS=OFF \

@@ -64,8 +64,10 @@ cd <workspace>/ps4port
 ./build-deps.sh
 ```
 
-Cross-builds zlib, libzip, tinyxml2, nlohmann-json, spdlog, ogg, vorbis, opus, opusfile and
-SDL2 2.30.9 into `ps4port/prefix/`. This is only needed once.
+Cross-builds zlib, bzip2, libzip, tinyxml2, nlohmann-json, spdlog, ogg, vorbis, opus, opusfile
+and SDL2 2.30.9 into `ps4port/prefix/`. This is only needed once (but again after changing the
+toolchain file, everything has to be rebuilt with the same flags). StormLib, for `.otr`
+archives, is fetched and built with the game.
 
 ## 4. Game
 

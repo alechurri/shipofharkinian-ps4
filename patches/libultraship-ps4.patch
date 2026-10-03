@@ -417,9 +417,18 @@ index 0000000..30e2167
 +
 +#endif // __PS4__
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index f6dbc94..fa30ef7 100644
+index f6dbc94..59b874f 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
+@@ -46,7 +46,7 @@ target_include_directories(libultraship
+ 
+ #=================== Linking ===================
+ if(INCLUDE_MPQ_SUPPORT)
+-    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
++    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" AND NOT CMAKE_SYSTEM_NAME STREQUAL "PS4")
+         target_link_libraries(libultraship PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,storm>")
+     else()
+         target_link_libraries(libultraship PUBLIC storm)
 @@ -94,7 +94,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
      target_link_libraries(libultraship PRIVATE ${OSX_FOUNDATION} ${OSX_AVFOUNDATION} ${METAL} ${QUARTZCORE} ${COREAUDIO} ${AUDIOTOOLBOX} ${CMAKE_DL_LIBS})
  endif()
