@@ -4,16 +4,18 @@ Mods go in `/data/soh/mods/` on the console (the game creates the folder on firs
 them over FTP, then enable them from the SoH menu (touchpad click) in the mods section.
 Subfolders are fine, the folder is scanned recursively.
 
-> No mod has been verified on the PS4 port yet. Test a mod on the PC release of Ship of Harkinian
-> 9.2.3 first; if it is broken there it will be broken on the console too. If you try one, please
-> report the result (and attach `/data/soh/ps4_boot.log` if it fails).
+> `.otr` mods are verified on a PS4 Pro (FW 12.52): eight character, item model and dialogue mods
+> loaded together and worked in game, using about 40 MiB of extra memory. `.o2r` mods use the
+> same code path as the game's own archives but have not been tried yet. Test a mod on the PC
+> release of Ship of Harkinian 9.2.3 first; if it is broken there it will be broken on the console
+> too. If one fails, please attach `/data/soh/ps4_boot.log` to an issue.
 
 ## Supported formats
 
 | Format | PS4 port | Notes |
 | --- | --- | --- |
 | `.o2r` | yes | |
-| `.otr` | yes, since v0.2.0 | The old MPQ format. Upload it as is, no conversion needed. |
+| `.otr` | yes, since v0.2.0 (verified) | The old MPQ format. Upload it as is, no conversion needed. |
 | `.zip` | no | Ignored on every platform. A downloaded `.zip` is only the wrapper: unzip it on a PC and upload the `.o2r` or `.otr` inside. |
 
 ## Limits

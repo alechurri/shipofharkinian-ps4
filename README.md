@@ -28,9 +28,10 @@ and the two Piglet modules described in the install guide.
 - 60 fps with frame interpolation, internal resolution up to about 150%
 - The full SoH menu: graphics options, enhancements, mod manager
 - Master Quest (with an `oot-mq.o2r` next to `oot.o2r`)
+- Mods in the old `.otr` format, uploaded as is (tested with eight character, item and dialogue
+  mods at once). See [docs/MODS.md](docs/MODS.md).
 
-Not tested yet: Randomizer, Boss Rush, and loading actual mods (`.o2r` and `.otr`, see
-[docs/MODS.md](docs/MODS.md)).
+Not tested yet: Randomizer, Boss Rush, and mods in `.o2r` format.
 
 ## Known limitations
 
