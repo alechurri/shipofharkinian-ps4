@@ -5,7 +5,7 @@ An experimental native port of [Ship of Harkinian](https://github.com/HarbourMas
 consoles. It is built with the [OpenOrbis toolchain](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain)
 and renders through Piglet, Sony's OpenGL ES 2.0 implementation. It is not an emulator.
 
-**Download:** the installable package is on the [Releases page](https://github.com/alechurri/soh-ps4/releases).
+**Download:** the installable package is on the [Releases page](https://github.com/alechurri/shipofharkinian-ps4/releases).
 
 *Majora's Mask* is ported too, in its own repository: [alechurri/2ship2harkinian-ps4](https://github.com/alechurri/2ship2harkinian-ps4).
 
@@ -13,7 +13,7 @@ Where everything lives:
 
 | Repository | Contents |
 | --- | --- |
-| [alechurri/soh-ps4](https://github.com/alechurri/soh-ps4) (this one) | Releases, build scripts, CMake toolchain, tests, documentation |
+| [alechurri/shipofharkinian-ps4](https://github.com/alechurri/shipofharkinian-ps4) (this one) | Releases, build scripts, CMake toolchain, tests, documentation |
 | [alechurri/Shipwright, branch `ps4`](https://github.com/alechurri/Shipwright/tree/ps4) | Ship of Harkinian 9.2.3 with the PS4 changes applied |
 | [alechurri/libultraship, branch `ps4`](https://github.com/alechurri/libultraship/tree/ps4) | libultraship with the PS4 platform layer and renderer |
 

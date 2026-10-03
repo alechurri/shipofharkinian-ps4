@@ -12,7 +12,7 @@ You will end up with these files on the console:
 
 | File | Where it comes from | Destination on the PS4 |
 | --- | --- | --- |
-| `IV0000-SOHP00001_00-SHIPOFHARKINIAN0.pkg` | [Releases page](https://github.com/alechurri/soh-ps4/releases) | installed as a package |
+| `IV0000-SOHP00001_00-SHIPOFHARKINIAN0.pkg` | [Releases page](https://github.com/alechurri/shipofharkinian-ps4/releases) | installed as a package |
 | `oot.o2r` (and/or `oot-mq.o2r`) | generated from your ROM, step 1 | `/data/soh/` |
 | `libScePigletv2VSH.sprx` | see step 2 | `/data/self/system/common/lib/` |
 | `libSceShaccVSH.sprx` | see step 2 | `/data/self/system/common/lib/` |

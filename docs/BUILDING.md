@@ -43,7 +43,7 @@ already points at the libultraship fork, so one recursive clone gets everything:
 ```bash
 cd <workspace>
 git clone --recurse-submodules --branch ps4 https://github.com/alechurri/Shipwright.git
-git clone https://github.com/alechurri/soh-ps4.git ps4port
+git clone https://github.com/alechurri/shipofharkinian-ps4.git ps4port
 ```
 
 Alternatively, the same changes are available as patches against the upstream repositories
