@@ -7,7 +7,7 @@ and renders through Piglet, Sony's OpenGL ES 2.0 implementation. It is not an em
 
 **Download:** the installable package is on the [Releases page](https://github.com/alechurri/soh-ps4/releases).
 
-*Majora's Mask* is ported too, in its own repository: [alechurri/2s2h-ps4](https://github.com/alechurri/2s2h-ps4).
+*Majora's Mask* is ported too, in its own repository: [alechurri/2ship2harkinian-ps4](https://github.com/alechurri/2ship2harkinian-ps4).
 
 Where everything lives:
 
