@@ -37,9 +37,16 @@ so GLES homebrew uses a matching pair of modules:
 - `libScePigletv2VSH.sprx`
 - `libSceShaccVSH.sprx`
 
-They are Sony binaries and are **not** distributed here. They are the same two files required by
-the Super Mario 64 PS4 port, whose release archive carries them under
-`data/self/system/common/lib/`. If you already run that port, you already have them in place.
+They are Sony binaries and are **not** distributed here. Two ways to get them:
+
+- **From the Super Mario 64 PS4 port.** Its release archive carries them under
+  `data/self/system/common/lib/`. If you already run that port, you already have them in place.
+- **From RetroArch for PS4.** Install and start RetroArch, then connect over FTP while it is
+  running: its `sce_module` folder is mounted in the app sandbox and holds both files. Download
+  them (in binary mode, see step 3). This route comes from the
+  [OpenPS4 orbisdev install guide](https://github.com/OpenPS4/guide-to-install-orbisdev).
+  Not tested with this port yet: if the files you get differ in size or hash from the table
+  below, please report whether the game starts with them.
 
 Check them before copying, a damaged copy is the most common cause of the game not starting:
 
