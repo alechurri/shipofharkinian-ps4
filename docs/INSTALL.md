@@ -3,7 +3,7 @@
 ## Requirements
 
 - A PS4 with a jailbreak that can install fake packages and run an FTP server. The port has only
-  been tested on a **PS4 Pro, firmware 12.52, with GoldHEN**.
+  been tested on a **PS4 Pro, firmware 12.02, with GoldHEN**.
 - A PC (Windows, Linux or macOS) to generate the game assets.
 - Your own *Ocarina of Time* ROM, in one of the versions Ship of Harkinian supports.
 - An FTP client such as FileZilla.
@@ -87,6 +87,9 @@ Launch "Ship of Harkinian" from the home screen.
   showing. Startup takes 10 to 15 seconds longer and the hitches are gone for everything you have
   already seen.
 - Press the **touchpad** to open the SoH menu.
+- Controls follow the N64 layout: **Cross = A, Circle = B, OPTIONS = Start** (Square and
+  Triangle are not A/B), L2 = Z, R2 = R, right stick = C buttons. Full table in the
+  [README](../README.md#controls); everything can be remapped from the menu.
 
 ## Files the game creates in `/data/soh/`
 

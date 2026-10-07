@@ -20,7 +20,7 @@ Where everything lives:
 **None of this contains game assets or Sony binaries.** You need your own legally obtained ROM,
 and the two Piglet modules described in the install guide.
 
-> **Tested on:** PS4 Pro, firmware 12.52, GoldHEN (the author's console), and a PS4 Pro on
+> **Tested on:** PS4 Pro, firmware 12.02, GoldHEN (the author's console), and a PS4 Pro on
 > firmware 9.60 with GoldHEN v2.4b18.12 (reported by a user). Nothing is known yet about the base
 > PS4 or other firmwares. Reports are welcome.
 
