@@ -66,7 +66,7 @@ Check them before copying, a damaged copy is the most common cause of the game n
    > **Do not use WinSCP for the `.sprx` files.** A user on firmware 9.60 had the game fail every
    > time until the modules were deleted and uploaded again with FileZilla in binary mode. The same
    > applies to other ports that use these files, such as the Super Mario 64 one.
-4. Upload:
+4. Upload, all of them in **binary mode** (step 3.3):
    - `oot.o2r` → `/data/soh/` (create the `soh` folder inside `/data` if it does not exist)
    - both `.sprx` files → `/data/self/system/common/lib/` (create the folders if needed)
    - the `.pkg` → `/data/pkg/` (create it if needed), or put it on a USB drive instead

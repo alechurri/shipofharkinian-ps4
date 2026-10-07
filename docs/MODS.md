@@ -1,7 +1,7 @@
 # Mods
 
 Mods go in `/data/soh/mods/` on the console (the game creates the folder on first boot). Upload
-them over FTP, then enable them from the SoH menu (touchpad click) in the mods section.
+them over FTP in **binary mode** (FileZilla: *Transfer → Transfer type → Binary*), then enable them from the SoH menu (touchpad click) in the mods section.
 Subfolders are fine, the folder is scanned recursively.
 
 > `.otr` mods are verified on a PS4 Pro (FW 12.02): eight character, item model and dialogue mods
